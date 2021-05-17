@@ -68,7 +68,7 @@ def find_value_in_father(node):
 要修改node 即 call的所有children 的父亲和first_node 的孩子， 注意孩子的顺序. 
 '''
 def change_calldotvalue(first_node, node):
-    tmp_attributes = json.loads('{"attributes":{"argumentTypes":null,"isConstant":false,"isLValue":false,"isPure":false,"lValueRequested":false,"member_name":"call","referencedDeclaration":null,"type":"function () payable returns (bool)"}}')['attributes']
+    tmp_attributes = json.loads('{"attributes":{"argumentTypes":[{"typeIdentifier":"t_uint256","typeString":"uint256"}],"isConstant":false,"isLValue":false,"isPure":false,"lValueRequested":false,"member_name":"send","referencedDeclaration":null,"type":"function (uint256) returns (bool)"}}')['attributes']
     send_node = Node(nodeType='function (uint256) returns (bool)', father=first_node.father)
     send_node.parseAttributes(tmp_attributes)
     # 改儿子的父亲
@@ -95,6 +95,38 @@ def MatchReentrancy(node):
     for ch in node.children:
         MatchReentrancy(ch)
 
+def find_judge_in_father(node):
+    while node:
+        if node.name == 'IfStatement':
+            return True
+        node = node.father
+
+    return False
+
+def CheckReturnValue(node):
+    UnaryOperation_node = Node()
+    UnaryOperation_node.parseAttributes(json.loads('{"argumentTypes":null,"isConstant":false,"isLValue":false,"isPure":false,"lValueRequested":false,"operator":"!","prefix":true,"type":"bool"}'))
+    UnaryOperation_node.name = "UnaryOperation"
+    father_node = node.father
+    UnaryOperation_node.children.append(father_node)
+
+
+    IfStatement_node = Node()
+    IfStatement_node.parseAttributes(json.loads('{"falseBody":null}'))
+    IfStatement_node.name = 'IfStatement'
+    IfStatement_node.children.append(UnaryOperation_node)
+    UnaryOperation_node.father = IfStatement_node
+
+    Throw_node = Node()
+    parseAst(json.loads('{"children":[{"children":[],"id":25,"name":"Throw","src":"233:5:0"}],"id":26,"name":"Block"}'), IfStatement_node)
+
+
+    pass 
+
 
 def MatchUncheckReturnValue(node):  # 对低级函数调用进行匹配
-    pass
+    if node.member_name == 'send':
+        if find_judge_in_father(node) == False:
+            CheckReturnValue(node)
+    for ch in node.children:
+        MatchUncheckReturnValue(ch)
