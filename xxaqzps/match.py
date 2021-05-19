@@ -162,31 +162,58 @@ def MatchOperator(opt):
         return ['mul', 0]
     return None
 
+def Add_Node(father, NewNode, node):
+    for x in range(len(father)):
+        if father.children[x] == node:
+            father.children[x] = NewNode
+    NewNode.father = father
+
 def UsingSafeMathLibrary(node, mode):
     # mode[1] 为 1 代表是 'x=' 需要增加等号 和 左值
-    if mode[1]:
-        pass
-    else:
-        FirstNode = Node()
-        SubNode = Node()
-        SafeMathNode = Node()
-        FirstNode.parseAttributes('{"attributes":{"argumentTypes":null,"isConstant":false,"isLValue":false,"isPure":false,"isStructConstructorCall":false,"lValueRequested":false,"names":[null],"type":"uint256","type_conversion":false}}')
-        SubNode.parseAttributes('{"attributes":{"argumentTypes":[{"typeIdentifier":"t_uint256","typeString":"uint256"},{"typeIdentifier":"t_uint256","typeString":"uint256"}],"isConstant":false,"isLValue":false,"isPure":false,"lValueRequested":false,"member_name":"sub","referencedDeclaration":68,"type":"function (uint256,uint256) pure returns (uint256)"}}')
-        SafeMathNode.parseAttributes('{"attributes":{"argumentTypes":null,"overloadedDeclarations":[null],"referencedDeclaration":93,"type":"type(library SafeMath)","value":"SafeMath"}}')
-        FirstNode.name = 'FunctionCall'
-        SubNode.name = 'MemberAccess'
-        SafeMathNode.name = 'Identifier'
-        SafeMathNode.father = SubNode
-        SubNode.children.append(SafeMathNode)
-        for x in range(len(node.father)):
-            if node.father.children[x] == node:
-                node.father.children[x] = FirstNode
-        FirstNode.father = node.father
-        FirstNode.children.append(SubNode)
-        for x in node.children:
-            FirstNode.children.append(x)
-            x.father = FirstNode
+    FirstNode = Node()
+    SubNode = Node()
+    SafeMathNode = Node()
+    FirstNode.parseAttributes('{"attributes":{"argumentTypes":null,"isConstant":false,"isLValue":false,"isPure":false,"isStructConstructorCall":false,"lValueRequested":false,"names":[null],"type":"uint256","type_conversion":false}}')
+    SubNode.parseAttributes('{"attributes":{"argumentTypes":[{"typeIdentifier":"t_uint256","typeString":"uint256"},{"typeIdentifier":"t_uint256","typeString":"uint256"}],"isConstant":false,"isLValue":false,"isPure":false,"lValueRequested":false,"member_name":"{0}","referencedDeclaration":68,"type":"function (uint256,uint256) pure returns (uint256)"}}'.format(mode[0]))
+    SafeMathNode.parseAttributes('{"attributes":{"argumentTypes":null,"overloadedDeclarations":[null],"referencedDeclaration":93,"type":"type(library SafeMath)","value":"SafeMath"}}')
+    FirstNode.name = 'FunctionCall'
+    SubNode.name = 'MemberAccess'
+    SafeMathNode.name = 'Identifier'
 
+
+    SafeMathNode.father = SubNode
+    SubNode.children.append(SafeMathNode)
+
+    FirstNode.children.append(SubNode)
+    for x in node.children:
+        FirstNode.children.append(x)
+        x.father = FirstNode
+
+    # for x in range(len(node.father)):
+    #     if node.father.children[x] == node:
+    #         node.father.children[x] = FirstNode
+    # FirstNode.father = node.father
+
+    if not mode[1]:
+        Add_Node(node.father, FirstNode, node)
+        return 
+
+    EqualNode = Node()
+    EqualNode.parseAttributes('{"attributes":{"argumentTypes":null,"isConstant":false,"isLValue":false,"isPure":false,"lValueRequested":false,"operator":"=","type":"uint256"}}')
+    EqualNode.name = 'Assignment'
+
+    NewBalanceNode = Node()
+    NewBalanceNode.parseAttributes(node.children[0].attributes)
+    NewBalanceNode.name = 'IndexAccess'
+    
+    NewBalanceNode.father = EqualNode
+    EqualNode.children.append(NewBalanceNode)
+    
+    FirstNode.father = EqualNode
+    EqualNode.children.append(FirstNode)
+
+    Add_Node(node.father, EqualNode, node)
+    return 
     # node1 -> children = [SubNode[SafeMathNode], balances[sender[msg]], _amount]
     # SubNode -> father.children = node1
 
@@ -197,6 +224,23 @@ def MatchUnsafeMath(node):
         mode = MatchOperator(opt)
         if mode:
             UsingSafeMathLibrary(node, mode)
+    for ch in node.children:
+        MatchUnsafeMath(ch)
+
+def MatchAccessControl(node):
+    pass 
+'''
+1. isConstructor => Judge Function 
+2. dangrous fucntion call such as pay eth must verify their idx  such as developer, owner
+    2.1 If have Constructor 
+            if have owner
+                add it
+            else 
+                add owner in Constructor and add Judge
+        if don't have Constructor 
+            Suggest user to add Constructor
+Our Work: 
+'''
 
 if __name__ == '__main__':
     pass
