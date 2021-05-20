@@ -49,6 +49,7 @@ def parseAst(ast_node, father):
     if 'children' in ast_node:
         for x in ast_node['children']:
             parseAst(x, node)
+    return node
 
 
 def find_value_in_father(node):
@@ -168,7 +169,24 @@ def Add_Node(father, NewNode, node):
             father.children[x] = NewNode
     NewNode.father = father
 
+def SafeMathLibrary2Node():
+    root = None 
+    with open('./build_library.ast') as SafeMathLibraryFile:
+        SafeMathLibraryAST = json.loads(SafeMathLibraryFile.read())
+        root = parseAst(SafeMathLibraryFile, None)
+    assert(root)
+    return root
+
+SafeMathLibraryRoot = None
+
+def ImportSafeMathLibrary():
+    SafeMathLibraryRoot = SafeMathLibrary2Node()
+    
+
 def UsingSafeMathLibrary(node, mode):
+    global SafeMathLibraryRoot
+    if not SafeMathLibraryRoot:
+        ImportSafeMathLibrary()
     # mode[1] 为 1 代表是 'x=' 需要增加等号 和 左值
     FirstNode = Node()
     SubNode = Node()
