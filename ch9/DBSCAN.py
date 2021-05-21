@@ -51,6 +51,7 @@ while Kernel:
     Kernel.remove(Start)
     Queue = [Start]
     C.append([])
+    C[-1].append(Train_data[Start])
     while Queue:
         now = Queue[0]
         Queue.pop(0)
@@ -60,3 +61,7 @@ for x in C:
     for y in x:
         print(y)
     print('\n')
+
+for idx in range(Train_size):
+    if not used[idx]:
+        print('%d point is error' % idx)
